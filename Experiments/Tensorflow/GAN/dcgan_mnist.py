@@ -8,7 +8,7 @@ Usage: python3 dcgan_mnist.py
 
 import numpy as np
 import time
-from tensorflow.examples.tutorials.mnist import input_data
+from keras.datasets import mnist
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten, Reshape
@@ -99,6 +99,10 @@ class DCGAN(object):
         self.G.add(BatchNormalization(momentum=0.9))
         self.G.add(Activation('relu'))
 
+        self.G.add(Conv2DTranspose(int(depth/2), 5, padding='same'))
+        self.G.add(BatchNormalization(momentum=0.9))
+        self.G.add(Activation('relu'))
+
         self.G.add(UpSampling2D())
         self.G.add(Conv2DTranspose(int(depth/4), 5, padding='same'))
         self.G.add(BatchNormalization(momentum=0.9))
@@ -129,8 +133,10 @@ class DCGAN(object):
             return self.AM
         optimizer = RMSprop(lr=0.0001, decay=3e-8)
         self.AM = Sequential()
+        discriminator = self.discriminator();
+        discriminator.trainable = False
         self.AM.add(self.generator())
-        self.AM.add(self.discriminator())
+        self.AM.add(discriminator)
         self.AM.compile(loss='binary_crossentropy', optimizer=optimizer,\
             metrics=['accuracy'])
         return self.AM
@@ -141,8 +147,8 @@ class MNIST_DCGAN(object):
         self.img_cols = 28
         self.channel = 1
 
-        self.x_train = input_data.read_data_sets("mnist",\
-        	one_hot=True).train.images
+        (x_train, y_train), (x_test, y_test) = mnist.load_data()
+        self.x_train = x_train / 255
         self.x_train = self.x_train.reshape(-1, self.img_rows,\
         	self.img_cols, 1).astype(np.float32)
 
